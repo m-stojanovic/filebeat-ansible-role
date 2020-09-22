@@ -1,0 +1,1 @@
+# filebeat-ansible-role
