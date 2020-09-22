@@ -1,0 +1,50 @@
+---
+# Set conditions
+- name: Check is nginx installed on remote host
+  shell: 'systemctl status nginx | grep -oh "active"'
+  register: nginx_status
+  ignore_errors: yes
+
+- name: Check system hostname
+  shell: 'echo $HOSTNAME'
+  register: hostname_status
+
+# Display gathered values
+- name: Display temporary variable result
+  debug: 
+    msg: "{{ item  }}"
+  loop: 
+    - "{{ nginx_status }}"
+    - "{{ hostname_status }}"
+
+# Set variables if conditions are met
+- name: Set variable nginx
+  set_fact: 
+    nginx: "{{ nginx_status.stdout }}"
+  when: nginx_status.stderr.find('service could not be found') == -1
+
+- name: Set variable hostname
+  set_fact: 
+    hostname: "{{ hostname_status.stdout }}"
+  when: ansible_hostname == "dev-webserver"
+
+# Display variable if condition is met
+- name: Display required variable
+  debug: 
+    msg: "{{ item }}"
+  loop:
+    - "{{ nginx }}"
+    - "{{ hostname }}"
+  ignore_errors: yes
+  
+# Create filebeat.yml on remote host
+- name: Create filebeat.yml
+  template:
+    src: filebeat.conf.j2
+    dest: /etc/filebeat/filebeat.yml
+    #  notify:
+    #- restart filebeat
+
+    #- name: flush handlers to prevent start then restart
+    #meta: flush_handlers
+

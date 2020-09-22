@@ -1,0 +1,30 @@
+---
+- name: Ensure required dependencies are present.
+  apt:
+    name:
+      - apt-transport-https
+      - gnupg2
+    state: present
+
+- name: Add elastic GPG key
+  apt_key:
+    url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+    state: "present"
+
+- name: Add filebeat repository
+  apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/{{ filebeat_version }}/apt focal main"
+    state: "present"
+    update_cache: yes
+
+- name: install filebeat
+  apt:
+    name: "filebeat-7.9.0"
+    state: "present"
+
+- name: Start and enable filebeat
+  service:
+    name: filebeat
+    state: started
+    enabled: true
+

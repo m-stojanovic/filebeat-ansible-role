@@ -1,0 +1,18 @@
+---
+- include: redhat.yml
+  when: ansible_os_family == 'RedHat'
+
+- include: debian.yml
+  when: ansible_os_family == 'Debian'
+
+- include: config.yml
+  when: filebeat_state == 'present'
+
+#- import_tasks: debian.yml
+#  tags: [debian]
+
+#- import_tasks: redhat.yml
+#  tags: [redhat]
+
+#- import_tasks: config.yml
+#  tags: [config]
