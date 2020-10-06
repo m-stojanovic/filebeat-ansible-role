@@ -1,21 +1,53 @@
 ---
+# Transfer SSL certificates 
+- name: Put SSL certificates on remote host
+  copy:
+    src: "roles/filebeat/templates/ssl"  
+    dest: "/home/{{ user }}"
+    owner: "{{ user }}"
+    group: "{{ user }}"
+
 # Set conditions
-- name: Check is nginx installed on remote host
+- name: Check if nginx is installed on remote host
   shell: 'systemctl status nginx | grep -oh "active"'
   register: nginx_status
+  ignore_errors: yes
+
+- name: Check if ant-media is installed on remote host
+  shell: 'systemctl status antmedia | grep -oh "active"'
+  register: antmedia_status
+  ignore_errors: yes
+
+- name: Check if nexus is installed on remote host
+  shell: 'systemctl status nexus | grep -oh "active"'
+  register: nexus_status
+  ignore_errors: yes
+
+- name: Check if jenkins is installed on remote host
+  shell: 'systemctl status jenkins | grep -oh "active"'
+  register: jenkins_status
   ignore_errors: yes
 
 - name: Check system hostname
   shell: 'echo $HOSTNAME'
   register: hostname_status
+  ignore_errors: yes
+
+- name: Check if service exists on remove host
+  shell: 'ls -ld /services'
+  register: services_status
+  ignore_errors: yes
 
 # Display gathered values
-- name: Display temporary variable result
-  debug: 
-    msg: "{{ item  }}"
-  loop: 
-    - "{{ nginx_status }}"
-    - "{{ hostname_status }}"
+#- name: Display temporary variable result
+#  debug: 
+#    msg: "{{ item  }}"
+#  loop: 
+#    - "{{ nginx_status }}"
+#    - "{{ antmedia_status }}"
+#    - "{{ nexus_status }}"
+#    - "{{ jenkins_status }}"
+#    - "{{ hostname_status }}"
 
 # Set variables if conditions are met
 - name: Set variable nginx
@@ -23,28 +55,59 @@
     nginx: "{{ nginx_status.stdout }}"
   when: nginx_status.stderr.find('service could not be found') == -1
 
+- name: Set variable antmedia
+  set_fact:
+    antmedia: "{{ antmedia_status.stdout }}"
+  when: antmedia_status.stderr.find('service could not be found') == -1
+
+- name: Set variable nexus
+  set_fact:
+    nexus: "{{ nexus_status.stdout }}"
+  when: nexus_status.stderr.find('service could not be found') == -1
+
+- name: Set variable jenkins
+  set_fact:
+    jenkins: "{{ jenkins_status.stdout }}"
+  when: jenkins_status.stderr.find('service could not be found') == -1
+
+- name: Set variable debian
+  set_fact:
+    debian: defined
+  when: ansible_os_family == 'Debian'
+
+- name: Set variable redhat
+  set_fact:
+    redhat: defined
+  when: ansible_os_family == 'RedHat'
+
 - name: Set variable hostname
   set_fact: 
-    hostname: "{{ hostname_status.stdout }}"
+    hostvar: "{{ hostname_status.stdout }}"
   when: ansible_hostname == "dev-webserver"
 
+- name: Set variable services
+  set_fact:
+    services: defined
+  when: services_status.stderr.find('No such file or directory') == -1
+
 # Display variable if condition is met
-- name: Display required variable
-  debug: 
-    msg: "{{ item }}"
-  loop:
-    - "{{ nginx }}"
-    - "{{ hostname }}"
-  ignore_errors: yes
+#- name: Display required variable
+#  debug: 
+#    msg: "{{ item }}"
+#  loop:
+#    - "{{ nginx }}" 
+#    - "{{ antmedia }}"
+#    - "{{ hostvar }}"
+#  ignore_errors: yes
   
 # Create filebeat.yml on remote host
 - name: Create filebeat.yml
   template:
     src: filebeat.conf.j2
     dest: /etc/filebeat/filebeat.yml
-    #  notify:
-    #- restart filebeat
 
-    #- name: flush handlers to prevent start then restart
-    #meta: flush_handlers
-
+# Restart filebeat service
+- name: restart filebeat
+  service:
+    name: filebeat
+    state: restarted
