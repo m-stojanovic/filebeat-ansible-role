@@ -15,7 +15,7 @@
 
 - name: Install filebeat
   yum:
-    name: "filebeat-7.9.0"
+    name: "{{ filebeat_version }}"
     state: "present"
 
 - name: Start and enable filebeat
