@@ -14,10 +14,6 @@
 
 filebeat.inputs:
 
-# Each - is an input. Most options can be set at the input level, so
-# you can use different inputs for various configurations.
-# Below are the input specific configurations.
-
 {% if nginx is defined %}
 - type: log
   enabled: true
@@ -34,12 +30,78 @@ filebeat.inputs:
     kafka_topic: nginx-error-logs
 {% endif %}
 
+{% if antmedia is defined %}
+- type: log
+  enabled: true
+  paths:
+    - /usr/local/antmedia/log/ant-media-server.log
+  fields:
+    kafka_topic: ant-media-server-logs
+
+- type: log
+  enabled: true
+  paths:
+    - /usr/local/antmedia/log/antmedia-error.log
+  fields:
+    kafka_topic: ant-media-error-logs
+{% endif %}
+
+{% if nexus is defined %}
+- type: log
+  enabled: true
+  paths:
+    - /opt/sonatype-work/nexus3/log/audit/audit.log
+  fields:
+    kafka_topic: nexus-audit-logs
+
+- type: log
+  enabled: true
+  paths:
+    - /opt/sonatype-work/nexus3/log/request.log
+  fields:
+    kafka_topic: nexus-request-logs
+
+- type: log
+  enabled: true
+  paths:
+    - /opt/sonatype-work/nexus3/log/tasks/repository.cleanup-2020*.log
+  fields:
+    kafka_topic: nexus-cleanup-logs
+{% endif %}
+
+{% if jenkins is defined %}
+- type: log
+  enabled: true
+  paths:
+    - /var/log/jenkins/jenkins.log
+  fields:
+    kafka_topic: jenkins-master-logs
+{% endif %}
+
+{% if debian is defined %}
+- type: log
+  enabled: true
+  paths:
+    - /var/log/syslog
+  fields:
+    kafka_topic: debian-sys-logs
+  exclude_lines: ['#011INFO#','#011WARN#','filebeat']
+
+- type: log
+  enabled: true
+  paths:
+    - /var/log/auth.log
+  fields:
+    kafka_topic: debian-auth-logs
+{% endif %}
+
+{% if redhat is defined %}
 - type: log
   enabled: true
   paths: 
     - /var/log/messages
   fields:
-    kafka_topic: system-message-logs
+    kafka_topic: redhat-message-logs
   exclude_lines: ['#011INFO#','#011WARN#','filebeat']
 
 - type: log
@@ -47,25 +109,62 @@ filebeat.inputs:
   paths: 
     - /var/log/secure
   fields:
-    kafka_topic: system-secure-logs
+    kafka_topic: redhat-secure-logs
+{% endif %}
 
+{% if services is defined %}
 - type: log
   enabled: true
   paths:
     - /services/*/logfile
   fields:
-    kafka_topic: services-logs
+    kafka_topic: service-logs
+{% endif %}
 
-{% if hostname is defined %}
+{% if hostvar is defined %}
+# Account Belgrade
 - type: s3
-  queue_url: 
+  queue_url: {{ sqs_queue_url_belgrade }}
   visibility_timeout: 300s
-  access_key_id: ''
-  secret_access_key: ''
-  aws_region: 
+  access_key_id: "{{ aws_access_key_belgrade_acc }}"
+  secret_access_key: "{{ aws_secret_key_belgrade_acc }}"
+  aws_region: ap-south-1
   credential_profile_name: filebeat
   fields:
-    kafka_topic: s3-logs
+    kafka_topic: s3-belgrade-cloudtrail-logs
+
+# Account Dev
+- type: s3
+  queue_url: {{ sqs_queue_url_dev }}
+  visibility_timeout: 300s
+  access_key_id: "{{ aws_access_key_dev_acc }}"
+  secret_access_key: "{{ aws_secret_key_dev_acc }}"
+  aws_region: eu-west-1
+  credential_profile_name: filebeat
+  fields:
+    kafka_topic: s3-dev-cloudtrail-logs
+
+# Account Prod01 
+- type: s3
+  queue_url: {{ sqs_queue_url_prod01 }}
+  visibility_timeout: 300s
+  access_key_id: "{{ aws_access_key_prod01_acc }}"
+  secret_access_key: "{{ aws_secret_key_prod01_acc }}"
+  aws_region: us-east-1
+  credential_profile_name: filebeat
+  fields:
+    kafka_topic: s3-prod01-cloudtrail-logs
+
+# Account Prod02
+- type: s3
+  queue_url: {{ sqs_queue_url_prod02 }}
+  visibility_timeout: 300s
+  access_key_id: "{{ aws_access_key_prod02_acc }}"
+  secret_access_key: "{{ aws_secret_key_prod02_acc }}"
+  aws_region: us-east-1
+  credential_profile_name: filebeat
+  fields:
+    kafka_topic: s3-prod02-cloudtrail-logs
 {% endif %}
 
   # Exclude lines. A list of regular expressions to match. It drops the lines that are
@@ -199,7 +298,7 @@ setup.kibana:
 # ------------------------------ Logstash Output -------------------------------
 #output.logstash:
   # The Logstash hosts
-  # hosts: ["devopslearning.xyz:5000"]
+  # hosts: ["localhost:5000"]
 
   # Optional SSL. By default is off.
   # List of root certificates for HTTPS server verifications
@@ -210,25 +309,7 @@ setup.kibana:
 
   # Client Certificate Key
   # sl.key: "/etc/pki/client/cert.key"
-# ------------------------------ Kafka Output -------------------------------
-output.kafka:
-  codec.format:
-    string: '%{[host.name]} %{[message]}'
-  hosts: ["kafka1:9092", "kafka2:9093", "kafka3:9094"]
-  topic: '%{[fields.kafka_topic]}'
-  partition.round_robin:
-    reachable_only: false
-  required_acks: 1
-  compression: gzip
-  max_message_bytes: 1000000      
-# ================================= Processors =================================
-processors:
-#  - add_host_metadata: ~ 
-#       when.not.contains.tags: forwarded
-#  - add_cloud_metadata: ~
-#  - add_docker_metadata: ~
-#  - add_kubernetes_metadata: ~
-
+  
 # ================================== Logging ===================================
 
 # Sets log level. The default log level is info.
@@ -288,3 +369,82 @@ logging.level: info
 
 # This allows to enable 6.7 migration aliases
 #migration.6_to_7.enabled: true
+
+# ================================== Logging ===================================
+
+# Sets log level. The default log level is info.
+# Available log levels are: error, warning, info, debug
+logging.level: info
+#logging.to_stderr: true
+
+# At debug level, you can selectively enable logging only for some components.
+# To enable all selectors use ["*"]. Examples of other selectors are "beat",
+# "publish", "service".
+#logging.selectors: ["*"]
+
+# ============================= X-Pack Monitoring ==============================
+# Filebeat can export internal metrics to a central Elasticsearch monitoring
+# cluster.  This requires xpack monitoring to be enabled in Elasticsearch.  The
+# reporting is disabled by default.
+
+# Set to true to enable the monitoring reporter.
+#monitoring.enabled: false
+
+# Sets the UUID of the Elasticsearch cluster under which monitoring data for this
+# Filebeat instance will appear in the Stack Monitoring UI. If output.elasticsearch
+# is enabled, the UUID is derived from the Elasticsearch cluster referenced by output.elasticsearch.
+#monitoring.cluster_uuid:
+
+# Uncomment to send the metrics to Elasticsearch. Most settings from the
+# Elasticsearch output are accepted here as well.
+# Note that the settings should point to your Elasticsearch *monitoring* cluster.
+# Any setting that is not set is automatically inherited from the Elasticsearch
+# output configuration, so if you have the Elasticsearch output configured such
+# that it is pointing to your Elasticsearch monitoring cluster, you can simply
+# uncomment the following line.
+#monitoring.elasticsearch:
+
+# ============================== Instrumentation ===============================
+
+# Instrumentation support for the filebeat.
+#instrumentation:
+    # Set to true to enable instrumentation of filebeat.
+    #enabled: false
+
+    # Environment in which filebeat is running on (eg: staging, production, etc.)
+    #environment: ""
+
+    # APM Server hosts to report instrumentation results to.
+    #hosts:
+    #  - http://localhost:8200
+
+    # API Key for the APM Server(s).
+    # If api_key is set then secret_token will be ignored.
+    #api_key:
+
+    # Secret token for the APM Server(s).
+    #secret_token:
+
+# ------------------------------ Kafka Output -------------------------------
+output.kafka:
+  codec.format:
+    string: '%{[host.name]} %{[message]}'
+  hosts: ["kafka-broker-1:9092", "kafka-broker-2:9093", "kafka-broker-3:9094"]
+  topic: '%{[fields.kafka_topic]}'
+  ssl.enabled: true
+  ssl.certificate_authorities: ["/home/{{ user }}/ssl/snakeoil-ca-1.crt"]
+  ssl.key: "/home/{{ user }}/ssl/snakeoil-ca-1.pem"
+  ssl.certificate: "/home/{{ user }}/ssl/snakeoil-ca-1-crt.pem"
+  partition.round_robin:
+    reachable_only: false
+  required_acks: 1
+  compression: gzip
+  max_message_bytes: 1000000
+
+# ================================= Processors =================================
+processors:
+#  - add_host_metadata: ~ 
+#       when.not.contains.tags: forwarded
+#  - add_cloud_metadata: ~
+#  - add_docker_metadata: ~
+#  - add_kubernetes_metadata: ~
