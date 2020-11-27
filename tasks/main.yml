@@ -9,7 +9,7 @@
   tags: [config]
 
 - import_tasks: stop.yml
-  tags: [stop]
+  tags: [stop, never]
 
 - import_tasks: restart.yml
-  tags: [restart]
+  tags: [restart, never]
