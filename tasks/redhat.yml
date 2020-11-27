@@ -1,10 +1,10 @@
 ---
-- name: Add rpm key for elastic.co
+- name: Add rpm key for elastic.co - RedHat
   rpm_key:
     key: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
     state: "present"
 
-- name: Create filebeat repository
+- name: Create filebeat repository - RedHat
   yum_repository:
     name: beats
     description: RPM Filebeat repo
@@ -13,12 +13,12 @@
     gpgcheck: yes
     gpgkey: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
 
-- name: Install filebeat
+- name: Install filebeat - RedHat
   yum:
     name: "{{ filebeat_version }}"
     state: "present"
 
-- name: Start and enable filebeat
+- name: Start and enable filebeat - RedHat
   service:
     name: filebeat
     state: started
