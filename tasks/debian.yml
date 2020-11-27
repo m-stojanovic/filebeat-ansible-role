@@ -1,33 +1,33 @@
 ---
-- name: Ensure required dependencies are present.
+- name: Ensure required dependencies are present. - Debian
   apt:
     name:
       - apt-transport-https
       - gnupg2
     state: present
 
-- name: Add elastic GPG key
+- name: Add elastic GPG key - Debian
   apt_key:
     url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
     state: "present"
 
-- name: Add filebeat repository
+- name: Add filebeat repository - Debian
   apt_repository:
     repo: "deb https://artifacts.elastic.co/packages/{{ filebeat_version }}/apt focal main"
     state: "present"
     update_cache: yes
 
-- name: Update repo and cache
+- name: Update repo and cache - Debian
   apt:
     update_cache: yes
     force_apt_get: yes
     
-- name: install filebeat
+- name: install filebeat - Debian
   apt:
     name: "{{ filebeat_version }}"
     state: "present"
 
-- name: Start and enable filebeat
+- name: Start and enable filebeat - Debian
   service:
     name: filebeat
     state: started
