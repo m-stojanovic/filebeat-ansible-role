@@ -27,7 +27,7 @@ This section should list any major frameworks that you built your project using.
 
 ## Getting Started
 
-ansible-playbook -i {{ your_inventory_file }} {{ your_playbook }} tags=debian,config
+ansible-playbook -i {{ your_inventory_file }} filebeat.yml tags=debian,config
 
 
 ### Prerequisites
