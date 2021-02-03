@@ -28,6 +28,11 @@
   register: jenkins_status
   ignore_errors: yes
 
+- name: Check if zabbix is installed on remote host
+  shell: 'systemctl status zabbix-agent.service | grep -oh "active"'
+  register: zabbix_status
+  ignore_errors: yes
+  
 - name: Check system hostname
   shell: 'echo $HOSTNAME'
   register: hostname_status
@@ -70,6 +75,11 @@
     jenkins: "{{ jenkins_status.stdout }}"
   when: jenkins_status.stderr.find('service could not be found') == -1
 
+- name: Set variable zabbix
+  set_fact:
+    zabbix: "{{ zabbix_status.stdout }}"
+  when: zabbix_status.stderr.find('service could not be found') == -1
+  
 - name: Set variable debian
   set_fact:
     debian: defined
