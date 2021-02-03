@@ -78,6 +78,29 @@ filebeat.inputs:
     kafka_topic: jenkins-master-logs
 {% endif %}
 
+{% if zabbix is defined %}
+- type: log
+  enabled: true
+  paths:
+    - /var/log/zabbix/zabbix_server.log
+  fields:
+    kafka_topic: zabbix-master-logs
+
+- type: log
+  enabled: true
+  paths:
+    - /var/log/zabbix/zabbix_proxy.log
+  fields:
+    kafka_topic: zabbix-proxy-logs
+
+- type: log
+  enabled: true
+  paths:
+    - /var/log/zabbix/zabbix_agentd.log
+  fields:
+    kafka_topic: zabbix-agent-logs
+{% endif %}
+
 {% if debian is defined %}
 - type: log
   enabled: true
